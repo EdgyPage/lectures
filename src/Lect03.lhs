@@ -19,6 +19,7 @@ Agenda:
     - `let-in` expressions
 
 
+
 Defining Functions
 ------------------
 
@@ -29,8 +30,21 @@ E.g., define the following functions:
   - c2f (convert Celsius to Fahrenheit)
   - distance (Euclidean distance between two points)
 
-> 
 
+Not And Function
+
+> nand :: Bool -> Bool -> Bool
+> nand x y = not (x && y)
+
+C to F 
+
+> c2f :: Floating a => a -> a
+> c2f c = c * 9/5 + 32
+
+distance
+
+> distance :: Floating a => (a, a) -> (a, a) -> a
+> distance p1 p2 = sqrt((fst p1 - fst p2)^2 + (snd p1 - snd p2)^2)
 
 -- Pattern matching
 
@@ -39,7 +53,8 @@ Instead of using a variable in a function definition, we can use a *pattern* to 
 E.g., define `not` using pattern matching:
 
 > not' :: Bool -> Bool
-> not' = undefined
+> not' True = False
+> not' False = True
 
 
 Patterns are matched top down. A variable can be used as a "catch-all" pattern.
@@ -47,13 +62,18 @@ Patterns are matched top down. A variable can be used as a "catch-all" pattern.
 E.g., define `fib` (to return the nth Fibonacci number ) using pattern matching:
 
 > fib :: Integer -> Integer
-> fib = undefined
+> fib 0 = 1
+> fib 1 = 1
+> fib n = fib(n-1) + fib(n-2)
 
 
 E.g., define `greet`, which returns an opinionated greeting:
+Cannot pattern match a -> String because an Int can't be equated to a String
 
 > greet :: String -> String
-> greet = undefined
+> greet "Razi" = "Hello, Razi!"
+> greet name = "Hello, " ++ name ++ "!"
+
 
 
 Sometimes we don't care about the value of a parameter. We use `_` as the matching variable name to indicate this.
@@ -61,7 +81,8 @@ Sometimes we don't care about the value of a parameter. We use `_` as the matchi
 E.g., define `nand` again using pattern matching:
 
 > nand' :: Bool -> Bool -> Bool
-> nand' = undefined
+> nand' True True = False
+> nand' _ _ = True
 
 
 Patterns can also be used to "deconstruct" values. 
@@ -69,10 +90,10 @@ Patterns can also be used to "deconstruct" values.
 E.g., define `fst` and `snd` using pattern matching:
 
 > fst' :: (a,b) -> a
-> fst' = undefined
+> fst' (x, y) = x 
 >
 > snd' :: (a,b) -> b
-> snd' = undefined
+> snd' (x, y) = y
 
 
 E.g., redefine `distance` using pattern matching:

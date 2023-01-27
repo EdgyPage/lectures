@@ -1,4 +1,4 @@
-% CS 340: Programming Paradigms and Patterns
+%CS 340: Programming Paradigms and Patterns
 % Lect 02 - Types and Type Classes
 % Michael Lee
 
@@ -16,7 +16,7 @@ Agenda:
   - Function application
   - Functions of multiple arguments
   - "Operators"
-  - Polymorphic functions
+  - Polymorphic functions- a polymorphic function is a function that contains type variables
   - Type Classes
   - Class constraints
 
@@ -182,7 +182,9 @@ Just as a type is a collection of related values, a type *class* is a collection
       - This will list the class's methods and instances of the class
 
 Check out these classes and their methods:
-
+ghci in to terminal to turn on Haskell interpreter in terminal 
+:t pulls up type signatures 
+:i Eq - pulls up function info
     Eq
     Ord
     Num
