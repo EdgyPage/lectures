@@ -137,6 +137,8 @@ and separating blocks of code, but they are rarely used. Instead, we prefer
 to take advantage of *layout rules* that use indentation to group and separate 
 code. 
 
+TEST MESSAGE
+
 The "golden rule" for Haskell indentation is:
 
    Code which is part of some expression should be indented further in 
