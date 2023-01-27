@@ -99,21 +99,25 @@ E.g., define `fst` and `snd` using pattern matching:
 E.g., redefine `distance` using pattern matching:
 
 > distance' :: (Floating a) => (a, a) -> (a, a) -> a
-> distance' = undefined
+> distance' (x1, y1) (x2, y2) = sqrt((x1- x2)^2 + (y1 - y2)^2)
 
 
 E.g., define the `mapTup` function using pattern matching:
+Takes an a and functions to create b, then maps a to tuple and b to tuple
+Parentheses are required to define tuples
 
 > mapTup :: (a -> b) -> (a, a) -> (b, b)
-> mapTup = undefined
+> mapTup f (x, y) = ( f x, f y)
 
 
 As-patterns can be used to bind a variable to a sub-pattern.
 
 E.g., implement the (very contrived) function `foo`:
+@ operator maps local variable name to input structure
+
 
 > foo :: (a, (b, c)) -> ((a, (b, c)), (b, c), (a, b, c))
-> foo = undefined
+> foo t1@(x, t2@(y, z)) = (t1, t2, (x, y, z))
 
 
 -- Guards
@@ -123,17 +127,24 @@ Boolean "guards" can be used to select between multiple right-hand-sides in a si
 E.g., redefine `fib` using guards. Is it any clearer?
 
 > fib' :: Integer -> Integer
-> fib' = undefined
+> fib' n | n == 0 = 0
+>        | n == 1 = 1
+>        | otherwise = fib'(n-1) + fib'(n-2)
 
 E.g., define `c2h`, which converts Celsius to a "human readable" string:
 
 > c2h :: (Floating a, Ord a) => a -> String
-> c2h = undefined
+> c2h c | c2f c > 90 = "Hot"
+>       | c2f c > 70 = "Comfy"
+>       | otherwise = "Too cold" 
 
 E.g., define `quadrant` which returns the quadrant of a point:
 
 > quadrant :: (Num a, Ord a) => (a, a) -> Int
-> quadrant = undefined
+> quadrant (x, y) | x > 0 && y >0 = 1
+>                 | x < 0 && y >0 = 2
+>                 | x < 0 && y <0 = 3
+>                 | x > 0 && y <0 = 4
 
 -- `where` clause
 
@@ -142,13 +153,17 @@ A `where` clause lets us create a local binding for a var or function.
 E.g., redefine `c2h` using a `where` clause:
 
 > c2h' :: (Floating a, Ord a) => a -> String
-> c2h' = undefined
-
+> c2h' c | f > 90 = "Hot"
+>        | f > 70 = "Comfy"
+>        | otherwise = "Too cold"
+>  where f = c2f c
+>        g = 10
 
 Some useful language constructs
 -------------------------------
 
-Note: all the constructs in this section define *expressions* --- i.e., each evaluates to a value (which must have a consistent, static type). They are not statements!
+Note: all the constructs in this section define *expressions* --- i.e., 
+each evaluates to a value (which must have a consistent, static type). They are not statements!
 
 
 -- `if-then-else` expressions
@@ -161,17 +176,26 @@ Syntax:
 What's wrong with:
 
     if n < 0 then True else "False"
-
+Every expression must have static type. This returns either a Boolean or a String. 
 
 E.g., define `closer` which returns the point closest to a source point:
 
 > closer :: (Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> (a, a)
-> closer = undefined
+> closer src dist1 dist2 = if distance src dist1 < distance src dist2
+>                          then dist1 else dist2 
 
 
 -- `case` expressions
 
 `case` expressions are general pattern-matching forms.
+
+
+
+> fib'' :: Integer -> Integer
+> fib'' n = case n of 0 -> 0
+>                     1 -> 1
+>                     n -> fib''(n-1) + fib''(n-2)
+
 
 Syntax:
 
@@ -208,4 +232,9 @@ Syntax:
 E.g., define `quadRoots` which returns the roots of a quadratic equation:
 
 > quadRoots :: Double -> Double -> Double -> (Double, Double)
-> quadRoots = undefined
+> quadRoots a b c = let desc = b^2 - 4*a*c
+>                       sdesc = sqrt desc
+>                       r1 = (-b + sdesc) / (2*a)
+>                       r2 = (-b - sdesc) / (2*a)
+>                   in (r1, r2)
+
