@@ -4,6 +4,7 @@
 
 > module Lect03 where
 > import Data.Char
+> import Data.Char
 
 Functions
 =========
@@ -51,12 +52,20 @@ distance
 Instead of using a variable in a function definition, we can use a *pattern* to match against the parameter value.
 
 E.g., define `not` using pattern matching:
+Instead of using a variable in a function definition, we can use a *pattern* to match against the parameter value.
+
+E.g., define `not` using pattern matching:
 
 > not' :: Bool -> Bool
 > not' True = False
 > not' False = True
+> not' True = False
+> not' False = True
 
 
+Patterns are matched top down. A variable can be used as a "catch-all" pattern.
+
+E.g., define `fib` (to return the nth Fibonacci number ) using pattern matching:
 Patterns are matched top down. A variable can be used as a "catch-all" pattern.
 
 E.g., define `fib` (to return the nth Fibonacci number ) using pattern matching:
@@ -79,12 +88,18 @@ Cannot pattern match a -> String because an Int can't be equated to a String
 Sometimes we don't care about the value of a parameter. We use `_` as the matching variable name to indicate this.
 
 E.g., define `nand` again using pattern matching:
+Sometimes we don't care about the value of a parameter. We use `_` as the matching variable name to indicate this.
+
+E.g., define `nand` again using pattern matching:
 
 > nand' :: Bool -> Bool -> Bool
 > nand' True True = False
 > nand' _ _ = True
 
 
+Patterns can also be used to "deconstruct" values. 
+
+E.g., define `fst` and `snd` using pattern matching:
 Patterns can also be used to "deconstruct" values. 
 
 E.g., define `fst` and `snd` using pattern matching:
@@ -122,6 +137,9 @@ E.g., implement the (very contrived) function `foo`:
 
 -- Guards
 
+Boolean "guards" can be used to select between multiple right-hand-sides in a single function equation (`otherwise` designates the default).
+
+E.g., redefine `fib` using guards. Is it any clearer?
 Boolean "guards" can be used to select between multiple right-hand-sides in a single function equation (`otherwise` designates the default).
 
 E.g., redefine `fib` using guards. Is it any clearer?
