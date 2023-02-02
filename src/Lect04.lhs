@@ -4,7 +4,8 @@
 
 > module Lect04 where
 > import Data.Char
-
+import Test.QuickCheck (infiniteListOf)
+  
 Lists
 =====
 
@@ -21,6 +22,11 @@ Agenda:
 
 The List type
 -------------
+Colon operator is called cons operator
+Must be elements of the same type including list of lists
+:i to pull up all info 
+([]:[]) is list of lists 
+1: ([] : []) is not valid as this is a list of nums and lists which breaks homogeneouty 
 
 Haskell's built-in list type might be defined something like this:
 
@@ -89,17 +95,29 @@ Functions that construct lists typically:
 
 
 E.g., implement the following list construction functions:
+Takes in an Int and an element a and returns a list of a
+
 
 > replicate' :: Int -> a -> [a]
 > replicate' 0 _ = []
 > replicate' n x = x : replicate' (n-1) x
 >
+
+
+
+
+
+
 > enumFromTo' :: (Ord a, Enum a) => a -> a -> [a]
 > enumFromTo' x y | x <= y    = x : enumFromTo' (succ x) y
 >                 | otherwise = []
 >
+
+Take takes a set amount of values from an infinite list 
+
+
 > -- and now for some infinite lists
->
+> -- produces infinite lists 
 > ones :: [Int]
 > ones = 1 : ones
 > 
@@ -155,6 +173,8 @@ E.g., for infinite lists of `Enum` types, [I..] and [I,J..]
 List comprehensions
 -------------------
 
+
+
 Syntax:
 
   [ Expression | Generator, ... , Predicate, ... ]
@@ -170,9 +190,10 @@ Syntax:
 E.g.,
 
 > evens = [2*x | x <- [1..]]
->
+> -- generate list of x such that x is an element of the infinite list where x mod 2 = 0
 > evens' = [x | x <- [1..], x `mod` 2 == 0]
 >
+> -- 
 > integerRightTriangles p = [(a,b,c) | a <- [1..p], 
 >                                      b <- [a..(p-a)],
 >                                      let c = p-(a+b),
@@ -181,12 +202,14 @@ E.g.,
 E.g., try implementing:
 
 > factors :: Integral a => a -> [a]
-> factors n = [f | f <- [1..n], n `mod` f == 0]
+> factors n = [f | f <- [2..n-1], n `mod` f == 0]
 >
 > cartesianProduct :: [a] -> [b] -> [(a,b)]
+> -- returns list of tuples where x comes from xs and y from ys
 > cartesianProduct xs ys = [(x,y) | x <- xs, y <- ys]
 >
 > concat' :: [[a]] -> [a]
+> -- returns list of x such that list l comes from ls and x comes from l
 > concat' ls = [x | l <- ls, x <- l]
 
 
@@ -250,13 +273,14 @@ value constructors can be used for pattern matching).
 E.g., implement:
 
 > head' :: [a] -> a
-> head' = undefined
+> head' (x:_) = x
 >
 > tail' :: [a] -> [a]
-> tail' = undefined
+> tail' (_:xs) = xs
 > 
 > null' :: [a] -> Bool
-> null' = undefined
+> null' [] = True
+> null' _ = False
 
 
 -- Structural recursion
@@ -285,6 +309,7 @@ E.g., to compute the length of a list:
 E.g., implement more built-in functions:
 
 > last' :: [a] -> a
+> -- last element of list is the last element, else keep chopping list down
 > last' (x:[]) = x
 > last' (_:xs) = last' xs
 >
