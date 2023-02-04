@@ -313,7 +313,7 @@ E.g., implement more built-in functions:
 > last' (x:[]) = x
 > last' (_:xs) = last' xs
 >
->
+>--Concatenation
 > (+++) :: [a] -> [a] -> [a]
 > [] +++ ys = ys
 > (x:xs) +++ ys = x : xs +++ ys
@@ -323,17 +323,25 @@ E.g., implement more built-in functions:
 > (x:_) !!! 0 = x
 > (_:xs) !!! n = xs !!! (n-1)
 >
->
+>-- to reverse, must add LIST on left side to concatenate 
+> -- n^2 implementation when using concatenate
 > reverse' :: [a] -> [a]
 > reverse' [] = []
 > reverse' (x:xs) = reverse' xs +++ [x] -- is there a more efficient way?
 >
->
+> -- taking anything from empty list returns empty list
 > take' :: Int -> [a] -> [a]
 > take' 0 _ = []
 > take' _ [] = []
 > take' n (x:xs) = x : take' (n-1) xs
->
+
+Haskell lazy evaluation
+take 3 ones
+take 3 (1:ones)
+1 : take (3-1) ones 
+1 : take 2 (1:ones)
+etc. until evaluates base case of empty list 
+
 >
 > splitAt' :: Int -> [a] -> ([a], [a])
 > splitAt' _ [] = ([],[])
@@ -348,7 +356,7 @@ E.g., implement more built-in functions:
 >                   | otherwise = let (ys, zs) = break' p xs
 >                                 in (x:ys, zs)
 >
->
+> -- isSpace is a function that returns true if space
 > words' :: String -> [String]
 > words' [] = []
 > words' l@(c:cs) | isSpace c = words' cs
