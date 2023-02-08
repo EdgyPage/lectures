@@ -8,6 +8,12 @@ import Control.Exception
 import Test.Hspec
 import Test.QuickCheck
 \end{code}
+\begin{code}
+module Lect05 where
+import Control.Exception
+import Test.Hspec
+import Test.QuickCheck
+\end{code}
 
 Testing
 =======
@@ -15,7 +21,11 @@ Testing
 Agenda:
   - What is testing?
   - Approaches to testing & verification
+  - What is testing?
+  - Approaches to testing & verification
   - Hspec testing framework
+  - Example-based tests with Hspec
+  - Property-based tests with QuickCheck
   - Example-based tests with Hspec
   - Property-based tests with QuickCheck
   - Test coverage
@@ -38,23 +48,58 @@ Testing tools can help:
 
 
 Approaches to testing & verification
+What is testing?
+----------------
+
+A *test* verifies that some aspect of a system works to specification.
+
+Testing tools can help:
+
+  - simplify test specification, discovery, execution, and reporting
+
+  - ensure that code changes don't break existing functionality (no regressions)
+
+  - determine code coverage (how much of the codebase is actually run)
+
+  - eliminate code "lint" (aka "dead code")
+
+
+Approaches to testing & verification
 ------------------------------------
 
 General strategy: Test-Driven Development (TDD)
+General strategy: Test-Driven Development (TDD)
 
   - Write tests *first*, ensure they fail, then write code to get them to pass
+  - Write tests *first*, ensure they fail, then write code to get them to pass
 
+  - After all tests pass, any future code refactoring requires re-running tests
   - After all tests pass, any future code refactoring requires re-running tests
 
 
 But how to write tests? (How to verify correctness?)
+But how to write tests? (How to verify correctness?)
 
+  - *Static tests* are carried out by a compiler, which checks for syntax and
+     type related errors. We write *type signatures* to help the compiler.
   - *Static tests* are carried out by a compiler, which checks for syntax and
      type related errors. We write *type signatures* to help the compiler.
 
   - *Unit tests* check that "units" of code (e.g., functions, classes) work as 
     expected. Their specification/execution is facilitated by test frameworks.
+  - *Unit tests* check that "units" of code (e.g., functions, classes) work as 
+    expected. Their specification/execution is facilitated by test frameworks.
 
+      - *Example-based tests* explicitly declare the expected results (e.g.,
+        return value, output, exception) for different inputs and/or state.
+      
+      - *Property-based tests* declare high-level "properties" (aka invariants) 
+        that must hold true for all inputs and/or state. Specific cases are 
+        automatically generated and checked.
+              
+  - *Formal verification* may be done at a higher level of abstraction. It is
+    typically done by a theorem prover, which checks for logical errors by
+    proving that the program satisfies a set of logical properties.
       - *Example-based tests* explicitly declare the expected results (e.g.,
         return value, output, exception) for different inputs and/or state.
       
@@ -81,7 +126,17 @@ someSpec =
     it "fulfills some other expectation ..." $
       pending
 \end{code}
+\begin{code}
+someSpec :: Spec
+someSpec = 
+  describe "someFunc" $ do
+    it "fulfills some expectation ..." $
+      pendingWith "Need to flesh out this test"
+    it "fulfills some other expectation ..." $
+      pending
+\end{code}
 
+  - Run a `Spec` using `hspec`.
   - Run a `Spec` using `hspec`.
 
   - Hspec supports both unit tests and property-based tests
@@ -113,6 +168,7 @@ c2k c | c >= 0 = c + 273.15
 c2f :: Floating a => a -> a
 c2f c = c * 9/5 + 32
 
+Hspec provides various functions for creating `Expectations`:
 
 f2c :: Floating a => a -> a
 f2c f = (f - 32) * 5/9
@@ -190,7 +246,14 @@ Property-based tests with QuickCheck
 QuickCheck is the original property-based testing framework. To use it, we
 specify properties for the unit being tested, and QuickCheck will automatically
 generate test cases to check that the property holds.
+Property-based tests with QuickCheck
+------------------------------------
 
+QuickCheck is the original property-based testing framework. To use it, we
+specify properties for the unit being tested, and QuickCheck will automatically
+generate test cases to check that the property holds.
+
+A property is function that takes test inputs and returns `Bool` or `Property`. 
 A property is function that takes test inputs and returns `Bool` or `Property`. 
 
   - properties must be monomorphic (i.e., they can't have type variables), as
@@ -285,6 +348,7 @@ prop_solvesFactored f1 f2 = r1^2 + b*r1 + c =~= 0
 
 
 E.g., define a `Spec` combining property-based and unit tests:
+E.g., define a `Spec` combining property-based and unit tests:
 
 \begin{code}
 quadRootsSpec' :: Spec
@@ -311,9 +375,12 @@ How much of our code are we actually testing?
   - are there functions we're never calling?
   
   - are there patterns/guards/branches we're never matching/taking?
+  
+  - are there patterns/guards/branches we're never matching/taking?
 
   - are there unreachable sections of code?
 
 `stack test --coverage` generates a coverage report for all modules tested.
 
+100 percent test coverage is a noble goal!
 100 percent test coverage is a noble goal!
