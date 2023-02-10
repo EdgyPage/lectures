@@ -38,12 +38,23 @@ factorial :: Integer -> Integer
 factorial 0 = 1
 factorial n = n * factorial (n-1)
 
+-- factorial n = traceShow n (n * factorial (n-1))
+-- break factorial n 
+-- to debug 
 
 -- sum up the elements of a list
 sumList :: (Show a, Num a) => [a] -> a
 sumList [] = 0
 sumList (x:xs) = x + sumList xs
 
+{- sumList 1:2:3:[]
+1 + sumList 2:3:[]
+1 + (2 + sumList 3:[])
+1 + (2 + (3 + sumList []))
+1 + (2 + (3 + 0))
+1 + (2 + 3)
+1 + 5
+6-}
 
 -- sometimes we iterate over lists in parallel
 weightedSum :: (Show a, Num a) => [a] -> [a] -> a

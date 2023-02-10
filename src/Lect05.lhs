@@ -247,7 +247,8 @@ prop_c2f2c c = f2c (c2f c) =~= c
 -- test predicates by passing them to `quickCheck` or `verboseCheck`
 -- can do `quickCheck (withMaxSuccess 1000 property)` to run more tests
 
-
+-- cTemp is a generator for doubles
+-- generates a list from abs0 to 1000
 cTemp :: Gen Double
 cTemp = choose (-273.15, 1000)
 
@@ -261,11 +262,11 @@ cTemp = choose (-273.15, 1000)
 --   `sample (listOf (choose (1, 100)))`,
 --   `sample (resize 100 (listOf (choose (1, 100))))`
 
-
+-- for all cTemp elements, they have the property c2fc
 prop_c2f2c' :: Property
 prop_c2f2c' = forAll cTemp prop_c2f2c
 
-
+-- 
 prop_c2f2c'' :: Double -> Property
 prop_c2f2c'' c = c >= -273.15 ==> f2c (c2f c) =~= c
 \end{code}
@@ -290,10 +291,13 @@ E.g., try writing properties to test distributivity of multiplication over
 addition and commutativity of addition:
 
 \begin{code}
+-- takes integer and list of numbers
+-- 
 prop_distMultOverAdd :: Integer -> [Integer] -> Bool
 prop_distMultOverAdd n xs = mySum [n*x | x <- xs] == n * mySum xs
 
-
+-- suffle returns shuffled lists 
+-- \ takes in function as variable name?
 prop_commAdd :: [Integer] -> Property
 prop_commAdd xs = forAll (shuffle xs) (\ys -> mySum xs == mySum ys)
 \end{code}
