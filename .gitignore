@@ -19,5 +19,4 @@ cabal.sandbox.config
 *.hp
 .DS_Store
 .#*
-*.code-workspace
 Temp.hs
