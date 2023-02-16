@@ -42,6 +42,7 @@ factorial n = n * factorial (n-1)
 -- break factorial n 
 -- to debug 
 
+-- reduction is iteration
 -- sum up the elements of a list
 sumList :: (Show a, Num a) => [a] -> a
 sumList [] = 0
@@ -56,6 +57,8 @@ sumList (x:xs) = x + sumList xs
 1 + 5
 6-}
 
+-- reduces two lists to single value
+-- takes single element from each list and multiplies them
 -- sometimes we iterate over lists in parallel
 weightedSum :: (Show a, Num a) => [a] -> [a] -> a
 weightedSum [] _ = 0
@@ -69,12 +72,12 @@ swapLetters [] = []
 swapLetters [x] = [x]
 swapLetters (x:y:xs) = y : x : swapLetters xs
 
-
+-- ++ is append operator 
 -- implement this using append (++)
 cycle' :: [a] -> [a]
 cycle' xs = xs ++ cycle' xs
 
-
+-- base case passes original list back to function that reduces list
 -- can we do better? (why is it better?)
 cycle'' :: [a] -> [a]
 cycle'' xs = c xs
@@ -83,6 +86,7 @@ cycle'' xs = c xs
 
 
 -- we'll need to pass values into subsequent iterations to track progress
+-- produces infinite list of Fib sequence
 fibs :: [Integer]
 fibs = f 0 1
   where f j k = j : f k (j+k)
@@ -95,13 +99,15 @@ Filtering is the process of iterating over a list and processing only those elem
 
 \begin{code}
 -- sum only the positive numbers in a list
+-- can also use '(if x > 0 then x else 0) + sumPositives xs'
 sumPositives :: Integral a => [a] -> a
 sumPositives [] = 0
 sumPositives (x:xs) | x > 0     = x + sumPositives xs
                     | otherwise = sumPositives xs
 
 
--- palindroms are strings that read the same forwards as backwards
+-- palindromes are strings that read the same forwards as backwards
+-- filter is specific version of recursion
 palindromes :: [String] -> [String]
 palindromes [] = []
 palindromes (w:ws) | w == reverse w = w : palindromes ws
@@ -116,6 +122,9 @@ in many different problems.
 
 \begin{code}
 -- generate all combinations (order doesn't matter -- how many are there?)
+-- combos 1,2,3 is  a set of combinations 
+-- {[1,2], [1,2,3], [1,3], [1], [2,3], [2], [3], []} 2^n
+-- assuming input is unique set
 combinations :: [a] -> [[a]]
 combinations [] = [[]]
 combinations (x:xs) = [ x:ys | ys <- combinations xs ] ++ combinations xs
@@ -124,7 +133,7 @@ combinations (x:xs) = [ x:ys | ys <- combinations xs ] ++ combinations xs
 -- generate all combinations of a given size (nCr = n!/(r!(n-r)!))
 combinations' :: Int -> [a] -> [[a]]
 combinations' 0 _ = [[]]
-combinations' _ [] = []
+combinations' _ [] = [] -- not enough elements to pull from in second list
 combinations' n (x:xs) = [ x:ys | ys <- combinations' (n-1) xs ] 
                         ++ combinations' n xs
 
@@ -143,8 +152,8 @@ change amt (c:cs)
 knapsack :: (Ord a, Num a) => a -> [(a,a)] -> a
 knapsack _ [] = 0
 knapsack wcap ((v,w):xs) 
-  | w > wcap   = knapsack wcap xs
-  | otherwise = max (v + knapsack (wcap-w) xs) (knapsack wcap xs)
+  | w > wcap   = knapsack wcap xs --item is too heavy, ignore item
+  | otherwise = max (v + knapsack (wcap-w) xs) (knapsack wcap xs) -- choose max of choosing item, or not choosing item
 
 
 -- find the actual set of items that maximizes value (under the weight cap)
