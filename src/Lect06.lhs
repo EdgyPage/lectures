@@ -178,7 +178,9 @@ closestPoints ps = minByDist (combinations' 2 ps)
         dist [(x1,y1),(x2,y2)] = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)
 
 
--- generate all permutations (order matters -- how many are there?)
+-- generate all permutations (order matters -- how many are there?) n!
+-- permutations [1,2,3] = 123, 132, 213, 321, 231, 312
+-- permutations [1,2] = 12, 21
 permutations :: [a] -> [[a]]
 permutations [] = [[]]
 permutations (x:xs) = concat [ interleave x p | p <- permutations xs ]
