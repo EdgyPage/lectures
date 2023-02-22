@@ -247,10 +247,13 @@ parameter to the recursive call that accumulates the solution.
 
 \begin{code}
 -- are all elements even?
+-- traceShow x to see x
+-- empty list is True as to not falsify otherwise empty list 
+-- could use `= even x && allEven xs` to shortcurcuit and operations
 allEven :: [Integer] -> Bool
 allEven [] = True
-allEven (x:xs) | even x = True
-               | otherwise = allEven xs
+allEven (x:xs) | even x = allEven xs
+               | otherwise = False
 
 
 -- are two lists the same length?
@@ -268,6 +271,7 @@ factorial' n r = factorial' (n-1) (n*r)
 
 
 -- tail recursive factorial with hidden accumulator
+-- can define function with accumulator hidden in where clause
 factorial'' :: Integer -> Integer
 factorial'' n = f n 1
   where f 0 r = r
@@ -282,6 +286,7 @@ reverse' xs = rev xs []
 
 
 -- enumerate the integers from m to n (with an accumulator)
+-- building list by accumulation tends to reverse list - this preserves linear runtime 
 enumFromTo' :: Integer -> Integer -> [Integer]
 enumFromTo' m n = reverse (f m [])
   where f i xs | i > n = xs
@@ -289,6 +294,7 @@ enumFromTo' m n = reverse (f m [])
 
 
 -- can we write the infinite list version using an accumulator?
+-- result is infinite computation, not infinite list so we need an accumulator
 enumFrom' :: Integer -> [Integer]
 enumFrom' n = f n []
   where f i xs = f (i+1) (i:xs)
