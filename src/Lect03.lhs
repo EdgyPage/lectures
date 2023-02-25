@@ -5,6 +5,7 @@
 > module Lect03 where
 > import Data.Char
 > import Data.Char
+> import Data.Char
 
 Functions
 =========
