@@ -2,262 +2,168 @@
 % Lect 07 - Higher order functions
 % Michael Lee
 
-> module Lect07 where
-> import Prelude hiding (foldr, foldl, foldr1, foldl1)
-> import Data.Char
+\begin{code}
+module Lect07 where
+import Prelude hiding (($), (.), flip, on, 
+                       map, filter, any, all, iterate, until,
+                       foldr, foldl, foldr1, foldl1)
+import Data.Char
+import Data.Bits ( Bits(xor) )
+import Data.Function hiding (($), (.), flip, on)
+import Data.List (minimumBy)
+import Debug.Trace
+\end{code}
 
 Higher order functions
 ======================
 
 Agenda:
-  - HOF overview
-  - Functions as values
-    - Named functions
-    - Partial application
-    - Operator sections
-    - Lambda expressions
-  - Function application
-  - Function composition
-  - Map
-  - Filter
-  - Fold
+  - HOFs and Combinators
+  - Basic combinators
+  - Recursive patterns via HOFs
+  - Bonus HOFs
 
 
-HOF overview
-------------
+HOFs and Combinators
+--------------------
 
-A higher-order function is a function that takes a function as a parameter or
-returns a function. ("Regular" functions are called first-order functions).
+A higher-order function (HOF) is a function that takes a function as a parameter or returns a function. (Non-HOFs are called first-order functions).
+They are a fundamental tool in functional programming.
 
-In many cases, HOFs create abstractions for commonly used implementation
-patterns (e.g., iteration, filtering, folding) so that we can reuse them while
-swapping in just the bits that matter (e.g., what to compute in each iteration,
-what predicate to use for filtering). 
-
-HOFs are a fundamental tool in functional programming.
+The term "combinator" is often used to refer to HOFs that combine or apply argument functions to do all their work.
 
 
-Functions as values
--------------------
+Basic combinators
+-----------------
 
-To use or implement HOFs we need to create function values; there are numerous
-ways of doing this.
+1. Application:
 
+\begin{code}
+($) :: (a -> b) -> a -> b
+infixr 0 $
+f $ x = f x
+\end{code}
 
--- Named functions
+It seems redundant (why?), but is quite useful in practice!
 
-When we define functions at the top-level or in where/let clauses, their names
-are just symbols bound to function values:
+E.g., how can we rewrite the following expresions?
 
-> foo :: Int -> Int
-> foo = undefined
-> 
-> bar :: Int -> Int
-> bar = foo
+\begin{verbatim}
+  putStrLn ("Hello" ++ " " ++ "World")
 
+  show (abs (2 - 5))
 
--- Partial application
-
-Due to currying, *all* functions of two or more arguments are HOFs. Partially
-applying a function returns a function of fewer arguments.
-
-Consider:
-
-> strCat :: String -> String -> String
-> strCat s t = s ++ t
->
-> sayHiTo :: String -> String
-> sayHiTo = strCat "hi, "
+  take 5 (drop 10 (zip [1..] (repeat 'a')))
+\end{verbatim}
 
 
--- Operator sections
+2. Composition
 
-We can also partially apply operators by placing them in parentheses and
-leaving out one of their arguments, which give us partial functions "waiting
-for" the missing argument.
+\begin{code}
+(.) :: (b -> c) -> (a -> b) -> a -> c
+infixr 9 .
+f . g = \x -> f (g x)
+\end{code}    
+
+Composition lets us combine functions into a new function, and is often used to
+simplify function definitions. We can also use it to write "point-free" (i.e., argument-less) function definitions.
+
+E.g., re-implement `even'`, `k2h`, and `strip` with composition:
+
+\begin{code}
+even' :: Integral a => a -> Bool
+even' x = 0 == (x `rem` 2)
+-- even' = (0 ==) . (`rem` 2)
+
+
+k2c :: Num a => a -> a
+k2c k = k - 273
+
+c2f :: Fractional a => a -> a
+c2f c = c * 9 / 5 + 32
+
+f2h :: (Ord a, Num a) => a -> String
+f2h f
+  | f < 0     = "too cold"
+  | f > 100   = "too hot"
+  | otherwise = "survivable"
+
+k2h :: (Ord a, Fractional a) => a -> String
+k2h  k = f2h $ c2f $ k2c k
+-- k2h = f2h . c2f . k2c
+
+
+strip :: String -> String
+strip s = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace s
+-- strip  = f . f
+--    where f = reverse . dropWhile isSpace
+\end{code}
+
+
+3. Flip, On, and (many) others
+
+Combinators are especially useful when paired with other HOFs!
+
+\begin{code}
+flip :: (a -> b -> c) -> b -> a -> c
+flip f x y = f y x
+
+
+on :: (b -> b -> c) -> (a -> b) -> a -> a -> c
+on f g x y = f (g x) (g y)
+\end{code}
+
+
+Recursive patterns via HOFs
+---------------------------
+
+1. Map: apply a function to each item of a list, returning the new list.
+
+\begin{code}
+map :: (a -> b) -> [a] -> [b]
+map _ [] = []
+map f (x:xs) = f x : map f xs
+\end{code}
+
 
 E.g.,
 
-> twoPlus = (2+)
-> divByThree = (/3)
-> divThreeBy = (3/)
-> sayHiTo' = ("hi, " ++)
+\begin{verbatim}
+  map (^2) [1..10]
 
+  take 10 $ map (^2) [1..]
 
--- Lambda expressions
+  map reverse $ words "madam I refer to adam"
 
-Lambda expressions allow us to define anonymous functions.
+  map (\x -> (x,x^2)) [1..10]
 
-Syntax: \ var1 var2 ... -> expression
+  map (++) $ words "on over under across"
 
-  Note: the expression after `->` extends as far to the right as possible,
-        so parenthesization is often needed!
+  map ($ " the sea") $ map (++) $ words "on over under across"
 
-We can use it as an alternative way to define top-level functions:
+  map ($ "jump ") $ map (flip (++)) $ words "on over under across"
 
-> sumOfSquares :: Num a => a -> a -> a
-> sumOfSquares = \x y -> x^2 + y^2
+  map (map (*2)) [[1..5], [6..10], [11..15]]
+\end{verbatim}
 
 
-We often use a lambda when we want to make it clear that a function is designed
-to return a function:
 
-> greeter :: String -> (String -> String) -- note: parens are superfluous
-> greeter g = \name -> g ++ ", " ++ name
+2. Filter: keep only the elements of a list that satisfy a predicate.
 
-> sayHiTo'' = greeter "hi"
+\begin{code}
+filter :: (a -> Bool) -> [a] -> [a]
+filter _ [] = []
+filter p (x:xs) | p x       = x : filter p xs
+                | otherwise = filter p xs
+\end{code}                 
 
 
-We also use lambdas to create simple functions to be passed to HOFs:
+E.g.,
 
-E.g., the library function `dropWhile` is the HOF version of drop:
-
-    dropWhile :: (a -> Bool) -> [a] -> [a]
-
-So we can do:
-
-    dropWhile (\x -> isDigit x || isPunctuation x) "01. Lorem ipsum"
-
-
-Function application
---------------------
-
-Function application is defined via the `$` operator, thusly:
-
-    ($) :: (a -> b) -> a -> b
-    infixr 0 $
-    f $ x = f x
-
-
-The low(est) precedence and right associativity of `$` make it so we can often
-use it to avoid the excessive parenthesization that would be necessary with
-default function application (via space).
-
-E.g., how can we rewrite the following using `$`?
-
-    sayHiTo ("Michael" ++ "Lee")
-
-    show (abs (2 - 5))
-
-    take 5 (drop 10 (zip [1..] (repeat 'a')))
-
-Answer:
-
-    sayHiTo $ "Michael" ++ "Lee"
-
-    show $ abs $ 2 - 5
-
-    take 5 $ drop 10 $ zip [1..1] $ repeat 'a'
-
-
-Function composition
---------------------
-
-Function composition is an operation on two functions that applies the first to
-the result of applying the second. It is defined thusly:
-
-    (.) :: (b -> c) -> (a -> b) -> a -> c
-    infixr 9 .
-    f . g = \x -> f (g x)
-
-
-`.` lets us succinctly combine functions:
-
-    (sqrt . sin) 1
-
-    (take 10 . repeat) 5
-
-
-`.` also facilitates "point-free" (i.e., argument-less) function definitions.
-
-E.g., re-implement `even'`, `k2h`, and `strip` with `.`
-
-> even' :: Integral a => a -> Bool
-> even' x = (x `rem` 2) == 0
-> even''  = (== 0) . (`rem` 2)
->
->
-> k2c k = k - 273
-> c2f c = c * 9 / 5 + 32
-> f2h f
->   | f < 0 = "too cold"
->   | f > 100 = "too hot"
->   | otherwise = "survivable"
->
->
-> k2h  k = f2h $ c2f $ k2c k
-> k2h'   = f2h . c2f . k2c
->
->
-> strip :: String -> String
-> strip s = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace s
-> strip'  = f . f
->    where f = reverse . dropWhile isSpace
-
-
-`.` also often does away with the need to create lambdas. 
-
-E.g., how can we do away with the lambdas in the following?
-
-    dropWhile (\w -> length w > 3) $ words "hello there, how are you?"
-
-Answer:
-
-    dropWhile ((> 3) . length) $ words "hello there, how are you?"
-
-
-Map
----
-
-`map` applies a function to each item of a list, returning the new list.
-
-    map :: (a -> b) -> [a] -> [b]
-
-
-Try out:
-
-    map even [1..10]
-
-    map reverse $ words "madam I refer to adam"
-
-    map (^2) [1..10]
-
-    map (\x->(x,x^2)) [1..10]
-
-    map (++) $ words "on over under across" -- what does this do?
-
-    map (\f -> f " the table") $ map (++) (words "on over under across")
-
-    map (map (*2)) [[1..5], [6..10], [11..15]]
-
-
-Implement `map` ourselves:
-
-> map' :: (a -> b) -> [a] -> [b]
-> map' _ [] = []
-> map' f (x:xs) = f x : map' f xs
-
-
-`map` generalizes a particular pattern often seen in recursive functions that
-process lists, where each item in the input list is passed through some
-computation to create an output list of the same size as the input. 
-
-As a HOF, `map` allows us to reuse the pattern without performing explicit
-recursion, only having to specify the computation involved in processing each
-individual item.
-
-
-Filter
-------
-
-`filter` only keeps values in a list that pass a provided predicate:
-
-    filter :: (a -> Bool) -> [a] -> [a]
-
-
-Try out:
-
+\begin{verbatim}
   filter even [1..10]
+
+  take 10 $ filter even [1..]
 
   filter (\(a,b,c) -> a^2+b^2 == c^2) $
          [(a,b,c) | a <- [1..10], b <- [a..10], c <- [b..10]]
@@ -267,253 +173,247 @@ Try out:
 
   map (\w -> (w,length w)) $ 
       filter (\s -> reverse s == s) $ 
-      words "madam I refer to adam"
-  
+             words "madam I refer to adam"
+\end{verbatim}  
 
-Implement `filter` ourselves:
 
-> filter' :: (a -> Bool) -> [a] -> [a]
-> filter' _ [] = []
-> filter' p (x:xs) | p x = x : filter' p xs
->                  | otherwise = filter' p xs
+3. All & Any
 
+\begin{code}
+all :: (a -> Bool) -> [a] -> Bool
+all _ [] = True
+all p (x:xs) = p x && all p xs
 
-`filter` generalizes yet another pattern seen in recursive list-processing
-functions --- one that takes an input list and extract a subset of the elements
-based on a test predicate. Again, `filter` lets us reuse the pattern by just
-specifying the predicate as an argument function.
+any :: (a -> Bool) -> [a] -> Bool
+any _ [] = False
+any p (x:xs) = p x || any p xs
+\end{code}
 
+E.g.,
 
-Fold
-----
+\begin{verbatim}
+  all even [2,4..10]
 
-"fold" is the name of a class of HOFs that generalize recursion over lists (and
-many other data types, as we'll discover). The pattern represented by fold is so
-general, in fact, that it can be used to implement *every primitive recursive
-function* on lists. 
+  any even [1..]
 
-To see the pattern in action before we abstract it, consider:
+  filter (any isDigit) $ words "hello 123 world a456b"
+\end{verbatim}  
 
-> sum' :: (Num a) => [a] -> a
-> sum' [] = 0
-> sum' (x:xs) = (+) x $ sum' xs
->
-> and' :: [Bool] -> Bool
-> and' [] = True
-> and' (x:xs) = (&&) x $ and' xs
-> 
-> concat' :: [[a]] -> [a]
-> concat' [] = []
-> concat' (x:xs) = (++) x $ concat' xs
 
+4. HOF versions of sort (and others)
 
-Each of the above recursive functions has some type `[a] -> b`, and is built
-around two essential components:
+\begin{code}
+sort :: Ord a => [a] -> [a]
+-- sort [] = []
+-- sort (x:xs) = sort [y | y <- xs, y < x] 
+--               ++ [x] 
+--               ++ sort [y | y <- xs, y >= x]
+sort = sortBy compare
 
-  1. a value used for the base case (the empty list)
+sortBy :: (a -> a -> Ordering) -> [a] -> [a]
+sortBy _ [] = []
+sortBy cmp (x:xs) = sortBy cmp [y | y <- xs, cmp y x == LT] 
+                    ++ [x] 
+                    ++ sortBy cmp [y | y <- xs, cmp y x /= LT]
+\end{code}
 
-  2. a function that combines a value from the list and the result of a
-     recursive call, and whose result is the return value of the recursive function
+E.g.,
+\begin{verbatim}
+  sortBy (flip compare) [1..10]
 
-I.e., to express a recursive list function of this type, we need:
+  sortBy (compare `on` length) $ words "madam I refer to adam"
 
-  1. a base case return value of type `b`
+  minimumBy (compare `on` length) $ words "madam I refer to adam"
+\end{verbatim}  
 
-  2. a combining function with type `a -> b -> b`, where `a` is the input list
-     element type, and `b` is the return type of both the recursive and combining functions
 
-Let's design a HOF that encapsulates this notion of primitive list recursion:
+5. Fold
 
-> recur :: (a -> b -> b) -> b -> [a] -> b
-> recur _ v [] = v
-> recur f v (x:xs) = f x $ recur f v xs
+Consider the recursive patterns found in:
 
+\begin{code}
+add :: (Num a) => [a] -> a
+add [] = 0
+add (x:xs) = (+) x $ product xs
 
-This is our first fold --- specifically, the "right fold".
 
+hash :: String -> Integer
+hash [] = 1307
+hash (c:cs) = h c $ hash cs
+  where h c r = fromIntegral (ord c) `xor` 7*r
+\end{code}
 
--- Right fold
 
-The right fold generalizes primitive recursion over lists.
+What is the essential pattern here?
 
-> foldr :: (a -> b -> b) -> b -> [a] -> b
-> foldr _ v [] = v
-> foldr f v (x:xs) = f x $ foldr f v xs
+  1. They take a list as input; i.e., they look like `[a] -> b`
 
-Note: foldr is actually defined for the "Foldable" type class --- the list is an
-instance of Foldable. We'll see how this works later!
+  2. There is a non-recursive definition that returns a value of type `b`
 
-Intuitively, foldr "replaces" each cons operator with the combining function,
-and the empty list with the base-case value.
+  3. There is a recursive definition that calls itself on the tail of
+     the list, and combines the result with the head of the list using a 
+     function of type `a -> b -> b`
 
-E.g., trace out the call `foldr (+) 0 [1..5]`:
 
-    foldr (+) 0 (1 : (2 : (3 : (4 : (5 : [])))))
+Write the HOF that captures this pattern:
 
-    = 1 + foldr (+) 0 (2 : (3 : (4 : (5 : []))))
+\begin{code}
+foldr :: (a -> b -> b) -> b -> [a] -> b
+foldr _ v [] = v
+foldr f v (x:xs) = f x $ foldr f v xs
+\end{code}
 
-    = 1 + (2 + foldr (+) 0 (3 : (4 : (5 : []))))
 
-    = 1 + (2 + (3 + foldr (+) 0 (4 : (5 : []))))
+We call this the "right fold", because if we trace out its evaluation on some
+argument (finite) list, we see that the base case value "replaces" the empty 
+list, and the combining function is applied in a right-associative manner to the elements of the list.
 
-    = 1 + (2 + (3 + (4 + foldr (+) 0 (5 : []))))
+E.g., trace the evaluation of `foldr (+) 0 [1..5]`:
 
-    = 1 + (2 + (3 + (4 + (5 + foldr (+) 0 []))))
+  foldr (+) 0 (1 : (2 : (3 : (4 : (5 : [])))))
 
-    = 1 + (2 + (3 + (4 + (5 + 0))))
+= 1 + foldr (+) 0 (2 : (3 : (4 : (5 : []))))
 
-    = 1 + (2 + (3 + (4 + 5)))
+= 1 + (2 + foldr (+) 0 (3 : (4 : (5 : []))))
 
-    = 1 + (2 + (3 + 9))
+= 1 + (2 + (3 + foldr (+) 0 (4 : (5 : []))))
 
-    = 1 + (2 + 12)
+= 1 + (2 + (3 + (4 + foldr (+) 0 (5 : []))))
 
-    = 1 + 14
+= 1 + (2 + (3 + (4 + (5 + foldr (+) 0 []))))
 
-    = 15
+= 1 + (2 + (3 + (4 + (5 + 0))))
 
-Note that foldr is inherently right-associative.
+= 1 + (2 + (3 + (4 + 5)))
 
-Let's define some simple recursive functions in terms of foldr:
+= 1 + (2 + (3 + 9))
 
-> sum'' :: (Num a) => [a] -> a
-> sum'' = foldr (+) 0
-> 
-> product'' :: (Num a) => [a] -> a
-> product'' = foldr (*) 1
->
-> and'' :: [Bool] -> Bool
-> and'' = foldr (&&) True
-> 
-> or'' :: [Bool] -> Bool
-> or'' = foldr (||) False
->
-> concat'' :: [[a]] -> [a]
-> concat'' = foldr (++) []
->
-> stringify' :: (Show a) => [a] -> String
-> stringify' = foldr ((++) . show) ""
->
-> (+++) :: [a] -> [a] -> [a]
-> l1 +++ l2 = foldr (:) l2 l1
->
-> length' :: [a] -> Int
-> length' = foldr (\_ l -> (+1) l) 0
+= 1 + (2 + 12)
 
-And higher order functions:
+= 1 + 14
 
-> map'' :: (a -> b) -> [a] -> [b]
-> map'' f = foldr ((:) . f) []
->
-> filter'' :: (a -> Bool) -> [a] -> [a]
-> filter'' f = foldr iter []
->   where iter x rst | f x = x : rst
->                    | otherwise = rst
+= 15
 
 
-Sometimes it makes sense to perform a right fold where the base-case value is
-just the last value in the list. Let's implement this version:
+Let's define some recursive functions in terms of foldr:
 
-> foldr1 :: (a -> a -> a) -> [a] -> a
-> foldr1 _ [x] = x
-> foldr1 f (x:xs) = f x $ foldr1 f xs
+\begin{code}
+add' :: (Num a) => [a] -> a
+add' = foldr (+) 0
 
 
-This allows us to easily "reduce" a list using a combining function. E.g.,
+hash' :: String -> Integer
+hash' = foldr h 1307
+  where h c r = fromIntegral (ord c) `xor` 7*r
 
-> sum''' = foldr1 (+)
->
-> product''' = foldr1 (*)
 
+(+++) :: [a] -> [a] -> [a]
+l1 +++ l2 = foldr (:) l2 l1
 
--- Left fold
 
-Because foldr is right-associative, it may produce unexpected results with
-combiner functions that are left-associative. E.g., predict and evaluate the
-results of the following:
+length' :: [a] -> Int
+length' = foldr (\_ r -> 1 + r) 0
 
-    foldr1 (-) [10, 5, 3, 2]
 
-    foldr1 (/) [200, 10, 5, 2]
+map' :: (a -> b) -> [a] -> [b]
+map' f = foldr ((:) . f) []
 
-The left-associative version of fold is called the left fold (foldl). Like
-foldr, foldl takes a combiner function, a value, and a list as arguments. Unlike
-foldr, foldl uses the provided value as an initial argument to the combiner
-function, and accumulates the result through its recursive calls.
 
-Here are recursive functions written in the left associative, accumulator style:
+filter' :: (a -> Bool) -> [a] -> [a]
+filter' p = foldr f []
+  where f x r | p x = x : r
+              | otherwise = r
+\end{code}
 
-> sumL :: (Num a) => a -> [a] -> a
-> sumL v [] = v
-> sumL v (x:xs) = sumL (v + x) xs
->
-> andL :: Bool -> [Bool] -> Bool
-> andL v [] = v
-> andL v (x:xs) = andL (v && x) xs
-> 
-> concatL :: [a] -> [[a]] -> [a]
-> concatL v [] = v
-> concatL v (x:xs) = concatL (v ++ x) xs
 
+Consider the recursive patterns found in:
 
-Let's extract the pattern and define `foldl`:
+\begin{code}
+pow :: (Integral a) => a -> [a] -> a
+pow r [] = r
+pow r (x:xs) = pow (r ^ x) xs
 
-> foldl :: (b -> a -> b) -> b -> [a] -> b
-> foldl _ v [] = v
-> foldl f v (x:xs) = foldl f (f v x) xs
 
+concatShow :: (Show a) => String -> [a] -> String
+concatShow r [] = r
+concatShow r (x:xs) = concatShow (r ++ show x) xs
+\end{code}
 
-E.g. trace out the call `foldl (+) 0 [1..5]`:
 
-    foldl (+) 0 (1 : (2 : (3 : (4 : (5 : [])))))
+How is the pattern different from before?
 
-  = foldl (+) (0 + 1) (2 : (3 : (4 : (5 : []))))
+  1. The recursive call is in the tail position
 
-  = foldl (+) ((0 + 1) + 2) (3 : (4 : (5 : [])))
+  2. The result of the non-recursive case is the accumulator
 
-  = foldl (+) (((0 + 1) + 2) + 3) (4 : (5 : []))
+  3. The combining function is applied to the incoming accumulator and
+     the head of the list, and the result is passed to the recursive call
 
-  = foldl (+) ((((0 + 1) + 2) + 3) + 4) (5 : [])
 
-  = foldl (+) (((((0 + 1) + 2) + 3) + 4) + 5) []
+Write the HOF that captures this pattern:
 
-  = (((((0 + 1) + 2) + 3) + 4) + 5)
+\begin{code}
+foldl :: (b -> a -> b) -> b -> [a] -> b
+foldl _ v [] = v
+foldl f v (x:xs) = foldl f (f v x) xs
+\end{code}
 
-  = ((((1 + 2) + 3) + 4) + 5)
 
-  = (((3 + 3) + 4) + 5)
+E.g., trace the evaluation of `foldl (+) 0 [1..5]`:
 
-  = ((6 + 4) + 5)
-  
-  = (10 + 5)
-  
-  = 15
+  foldl (+) 0 (1 : (2 : (3 : (4 : (5 : [])))))
 
----
+= foldl (+) (0 + 1) (2 : (3 : (4 : (5 : []))))
 
-Note that each level of recursion in foldl adds another application of the
-combiner function to the "outside" of the accumulated result. Because of lazy
-evaluation, this means we potentially build up an immense "thunk" to be
-evaluated later on. E.g.,
+= foldl (+) ((0 + 1) + 2) (3 : (4 : (5 : [])))
 
-    foldl f v [1..N]
+= foldl (+) (((0 + 1) + 2) + 3) (4 : (5 : []))
 
-    = foldl f (f v 1) [2..N]
+= foldl (+) ((((0 + 1) + 2) + 3) + 4) (5 : [])
 
-    = foldl f (f (f v 1) 2) [3..N]
+= foldl (+) (((((0 + 1) + 2) + 3) + 4) + 5) []
 
-    = foldl f (f (f (f v 1) 2) 3) [4..N]
+= (((((0 + 1) + 2) + 3) + 4) + 5)
 
-    = (f (f ... (f (f (f (f v 1) 2) 3) 4) ...) N)
+= ((((1 + 2) + 3) + 4) + 5)
 
+= (((3 + 3) + 4) + 5)
 
-When the accumulated result needs to be evaluated all at once, this can cause
-problems. E.g., try:
+= ((6 + 4) + 5)
 
-    foldl (+) 0 [1..10^8]
+= (10 + 5)
 
-The stack overflow is caused by space needed to fully evaluate the thunk (not
-for the recursive calls!). This is entirely due to lazy evaluation. 
+= 15
+
+
+This "left fold" is left-associative and tail-recursive.
+
+Let's define some recursive functions in terms of foldr:
+
+\begin{code}
+pow' :: (Integral a) => [a] -> a
+pow' = foldl (^) 1
+
+concatShow' :: (Show a) => [a] -> String
+concatShow' = foldl (\r x -> r ++ show x) ""
+\end{code}
+
+
+In what order do foldr and foldl evaluate their constituent functions? (The answer may surprise you!)
+
+Consider:
+
+\begin{code}
+foldrD :: Show a => (a -> b -> b) -> b -> [a] -> b
+foldrD _ v [] = v
+foldrD f v (x:xs) = traceShow x $ f x $ foldrD f v xs
+
+foldlD :: Show a => (b -> a -> b) -> b -> [a] -> b
+foldlD _ v [] = v
+foldlD f v (x:xs) = let e = traceShow x (f v x) 
+                    in foldlD f e xs
+\end{code}
+
 
 We can force Haskell to be stricter by using `seq`, which has type:
 
@@ -522,79 +422,75 @@ We can force Haskell to be stricter by using `seq`, which has type:
 `seq` takes two arguments and forces strict evaluation of its first argument
 before evaluating the second argument (and returning a result). 
 
-Technically, `seq` only evaluates its first argument to "weak head normal form"
-(WHNF), which guarantees that if the outermost part of the argument expression
-is a function application, it will be evaluated until that is no longer the
-case. Note that a list constructor or other value constructor does not count as
-a function application.
 
-We can use `seq` to write a strict version of `foldl` like this:
+Write a strict version of `foldl`:
 
-> foldl' :: (b -> a -> b) -> b -> [a] -> b
-> foldl' _ v [] = v
-> foldl' f v (x:xs) = let e = f v x in seq e $ foldl' f e xs
-
-With `seq`'s help, `foldl' (+) 0 [1..5]` has the following expansion --- note
-the lack of an accumulated thunk:
-
-    foldl' (+) 0 (1 : (2 : (3 : (4 : (5 : [])))))
-
-  = foldl' (+) 1 (2 : (3 : (4 : (5 : []))))
-
-  = foldl' (+) 3 (3 : (4 : (5 : [])))
-
-  = foldl' (+) 6 (4 : (5 : []))
-
-  = foldl' (+) 10 (5 : [])
-
-  = foldl' (+) 15 []
-
-  = 15
-
----
-
-We can define a version of foldl where the initial argument is simply the first
-value in the provided list:
-
-> foldl1 :: (a -> a -> a) -> [a] -> a
-> foldl1 f (x:xs) = foldl f x xs
+\begin{code}
+foldlDS :: Show a => (b -> a -> b) -> b -> [a] -> b
+foldlDS _ v [] = v
+foldlDS f v (x:xs) = let e = traceShow x (f v x) 
+                     in e `seq` foldlDS f e xs
+\end{code}
 
 
-And left-associative operations now work as expected:
-
-    foldl1 (-) [10, 5, 3, 2]
-
-    foldl1 (/) [200, 10, 5, 2]
+Right folds can work with infinite lists; left folds can not! (Why?)
 
 
-Additionally, the accumulator pattern built in to foldl allows us to implement
-functions like reverse more efficiently:
+Bonus HOFs
+----------
 
-> reverse' :: [a] -> [a]
-> reverse' = foldl (flip (:)) []
+It is convenient to have folds that use the first element of the list as the
+initial value (and thus don't require an initial value to be passed in).
+
+E.g.,
+
+\begin{code}
+foldr1 :: (a -> a -> a) -> [a] -> a
+foldr1 f (x:xs) = foldr f x xs
+
+-- e.g., foldr1 (*) [1..5]
+
+foldl1 :: (a -> a -> a) -> [a] -> a
+foldl1 f (x:xs) = foldl f x xs
+
+-- e.g., foldl1 (++) [[1,2], [3,4], [5,6]]
+\end{code}
 
 
--- On infinite lists
+The `scan` variants are like fold, but they return a list of the intermediate
+values of the result/accumulator.
 
-Which folds (if any) work with infinite lists?
+E.g., try:
 
-Try:
+\begin{verbatim}
+  scanr (+) 0 [1..5]
 
-    take 10 $ foldr (:) [] [1..]
+  scanl (+) 0 [1..5]
 
-    foldr (||) False $ map even [1..]
+  scanr1 (*) [1..5]
 
-    foldl (||) False $ map even [1..]
+  scanl1 (++) [[1,2], [3,4], [5,6]]
+\end{verbatim}
 
 
-Right folds can work with infinite lists; left folds can not!
+`iterate` takes a function and an initial value, and returns an infinite list
+of repeated applications of the function to the initial value.
 
-Why?
+\begin{code}
+iterate :: (a -> a) -> a -> [a]
+iterate f x = x : iterate f (f x)
 
-- foldr's combining function is applied to each element *before* the recursive
-  call. This allows the combining function to "short circuit" early --- i.e.,
-  to not perform the recursion if it isn't necessary.
+-- e.g., take 10 $ iterate (*2) 1
+\end{code}
 
-- foldl builds up an accumulated value from the inside out. This means the first
-  computation needed to obtain the result isn't known until all the recursive
-  calls have been performed. 
+
+`until` takes a predicate and a function, and returns the first value that
+satisfies the predicate when repeatedly applied to the function.
+
+\begin{code}
+until :: (a -> Bool) -> (a -> a) -> a -> a
+until p f x = if p x then x else until p f (f x)
+
+-- e.g., until (> 100) (*2) 1
+-- e.g., let n = 2 in until (\x -> abs (n-x*x) < 0.001) (\x -> (x + n/x) / 2) 1
+\end{code}
