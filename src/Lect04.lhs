@@ -4,7 +4,8 @@
 
 > module Lect04 where
 > import Data.Char
-import Test.QuickCheck (infiniteListOf)
+
+> import Test.QuickCheck (infiniteListOf)
   
 Lists
 =====
