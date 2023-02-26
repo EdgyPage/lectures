@@ -37,6 +37,7 @@ Basic combinators
 -----------------
 
 1. Application:
+-- infixer priority 0 with righthand priority 
 
 \begin{code}
 ($) :: (a -> b) -> a -> b
@@ -58,7 +59,9 @@ E.g., how can we rewrite the following expresions?
 
 
 2. Composition
-
+f is first function, g is second function 
+returns a function that takes an a and returns a c 
+f . g = \x -> f (g x) == f . g = \x -> f $ g x 
 \begin{code}
 (.) :: (b -> c) -> (a -> b) -> a -> c
 infixr 9 .
@@ -73,7 +76,8 @@ E.g., re-implement `even'`, `k2h`, and `strip` with composition:
 \begin{code}
 even' :: Integral a => a -> Bool
 even' x = 0 == (x `rem` 2)
--- even' = (0 ==) . (`rem` 2)
+-- right function is appplied first and is argument to left function 
+even' = (== 0) . (`rem` 2) -- point free (argument free) function definition 
 
 
 k2c :: Num a => a -> a
@@ -90,13 +94,15 @@ f2h f
 
 k2h :: (Ord a, Fractional a) => a -> String
 k2h  k = f2h $ c2f $ k2c k
--- k2h = f2h . c2f . k2c
+-- k2h k = f2h(c2f(k2c k))
+--  k2h = f2h . c2f . k2c
 
 
 strip :: String -> String
 strip s = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace s
 -- strip  = f . f
 --    where f = reverse . dropWhile isSpace
+-- can combine functions with combinators to save typing 
 \end{code}
 
 
@@ -111,6 +117,7 @@ flip f x y = f y x
 
 on :: (b -> b -> c) -> (a -> b) -> a -> a -> c
 on f g x y = f (g x) (g y)
+-- on f g = \x y -> f (g x) (g y)
 \end{code}
 
 
@@ -120,6 +127,7 @@ Recursive patterns via HOFs
 1. Map: apply a function to each item of a list, returning the new list.
 
 \begin{code}
+-- takes a function and a list and returns a list
 map :: (a -> b) -> [a] -> [b]
 map _ [] = []
 map f (x:xs) = f x : map f xs
@@ -137,6 +145,7 @@ E.g.,
 
   map (\x -> (x,x^2)) [1..10]
 
+  -- creates list of words that are waiting for second argument as concat is mapped to each string
   map (++) $ words "on over under across"
 
   map ($ " the sea") $ map (++) $ words "on over under across"
@@ -151,6 +160,8 @@ E.g.,
 2. Filter: keep only the elements of a list that satisfy a predicate.
 
 \begin{code}
+-- filter takes in a function and applies it to every lement of a list
+-- :{ :} for multiline input in ghci
 filter :: (a -> Bool) -> [a] -> [a]
 filter _ [] = []
 filter p (x:xs) | p x       = x : filter p xs
