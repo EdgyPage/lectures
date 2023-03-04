@@ -245,11 +245,13 @@ Consider the recursive patterns found in:
 \begin{code}
 and :: [Bool] -> Bool
 and [] = True
+-- and operator combines with first elemtent with result of recursive call
 and (x:xs) = (&&) x $ and xs
 
 
 showCat :: Show a => [a] -> String
 showCat [] = ""
+-- show x ++ showCat xs
 showCat (x:xs) = ((++) . show) x $ showCat xs
 \end{code}
 
@@ -268,8 +270,10 @@ What is the essential pattern here?
 Write the HOF that captures this pattern:
 
 \begin{code}
+-- first argument is binary combiner function 
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr _ v [] = v
+-- same as f x (foldr f v xs)
 foldr f v (x:xs) = f x $ foldr f v xs
 \end{code}
 
@@ -315,21 +319,27 @@ and' = foldr (&&) True
 showCat' :: Show a => [a] -> String
 showCat' = foldr ((++) . show) ""
 
+-- folds right input list by taking list and applying cons operator to all elements in list
+dup:: [a] -> [a]
+dup = foldr (:) []
 
+-- folds second list on to first list
 (+++) :: [a] -> [a] -> [a]
 l1 +++ l2 = foldr (:) l2 l1
 
-
+-- defining lambda function which adds one
 length' :: [a] -> Int
 length' = foldr (\_ r -> 1 + r) 0
 
-
+-- (f g)x == f(g(x))
+-- :t ((:) . even) == a -> [Bool] -> [Bool]
 map' :: (a -> b) -> [a] -> [b]
 map' f = foldr ((:) . f) []
 
 
 filter' :: (a -> Bool) -> [a] -> [a]
 filter' p = foldr f []
+-- if predicate function on x is True, then concat
   where f x r | p x = x : r
               | otherwise = r
 \end{code}
@@ -368,7 +378,7 @@ take 5 $ foldrT (:) [] [1..]
 take 5 $ foldrT ((++) . show) "" [1..]
 \end{verbatim}
 
-
+-- short curcuiting infinite lists is helpful
 -------------------------------------------------------------------------------
 
 
