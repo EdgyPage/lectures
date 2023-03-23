@@ -252,6 +252,8 @@ return value or by raising an exception, as might be done in other languages).
 
 E.g., consider:
 
+Maybe and Just are used here for error handling. The function does not always return a tuple of two doubles, sometimes it returns Nothing.
+
 > quadRoots :: Double -> Double -> Double -> Maybe (Double,Double)
 > quadRoots a b c = let d = b^2-4*a*c
 >                       sd = sqrt d
@@ -281,6 +283,8 @@ Another polymorphic type found in Prelude is `Either`, defined as:
 We often use `Either` to create data types where the `Left` constructor
 contains error values, and the `Right` constructor contains correct values.
 
+Right is right! 
+
 > find' :: (a -> Bool) -> [a] -> Either String a
 > find' _ [] = Left "List was empty"
 > find' p (x:xs) | p x = Right x
@@ -296,6 +300,8 @@ other type constructors), e.g.,
   (* -> *) -> * -> *
 
 A type with the above kind is:
+parenthesis means (a b) is concrete type and a is itself a type constructor
+
 
 > data T a b = T (a b)
 
@@ -305,6 +311,15 @@ The :kind command in GHCi can be used to reveal the kind of any type.
 
 The built-in list is just another polymorphic type! We can define our own list
 type like this:
+
+
+Use :- as value constructor 
+Functions exactly as :
+\begin{code}
+infixr 5 :- 
+data List a = a :- (List a) | Null deriving Show
+
+\end{code}
 
 > data List a = Cons a (List a) | Empty deriving Show
 
@@ -359,6 +374,7 @@ Types that conform to a type class are called *instances* of that class, and the
 functions defined by the class are called *methods*.
 
 Here's a silly class that defines two methods:
+a is Explosive when we can call method explode on a 
 
 > class Explosive a where
 >   explode :: a -> [a]
@@ -368,6 +384,8 @@ is an `explode` function that takes that type and returns a list of that type.
 
 To make a type an instance of a class, we need to declare it so and implement
 the requisite method(s):
+
+:info Int should show Ints are now Explosive 
 
 > instance Explosive Integer where
 >   explode n = [n..n+10]
