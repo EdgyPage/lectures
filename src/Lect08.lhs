@@ -20,6 +20,7 @@ Agenda:
 Type synonyms
 -------------
 
+
 `type` defines type synonyms, i.e., alternative names for existing types. Note
 that all type names must be capitalized.
 
@@ -45,6 +46,7 @@ to create values of this type. Value constructor names must also be capitalized.
 
 E.g., the `YesOrNo` type below has two value constructors: `Yes` and `No`:
 
+data Type = dataConstructor1 | dataConstructor2 deriving OtherType
 > data YesOrNo = Yes | No deriving Show
 
 (the `deriving` clause allows values of this type to be displayed in GHCi 
@@ -88,6 +90,7 @@ field types.
 
 When pattern matching, we can also deconstruct values into their fields:
 
+() around Box are necessary so it's not interpretted as a parameter of boxStr
 > boxStr :: Box -> String
 > boxStr (Box _ _ s) = s
 >
@@ -100,6 +103,7 @@ We can have multiple value constructors with varying numbers of fields.
 
 E.g., `Shape` has three value constructors, each with one or more fields:
 
+Shape is a type, Circle Triangle and Rectangle are data constructors
 > data Shape = Circle Double 
 >              | Triangle Double Double 
 >              | Rectangle Double Double deriving Show
@@ -119,8 +123,8 @@ be formed from the "sum" and "product" of other types.
 
 Here are two sum types:
 
-> data T1 = T1V1 | T1V2 | T1V3
-> data T2 = T2V1 Bool | T2V2 T1
+> data T1 = T1V1 | T1V2 | T1V3 -- 3 values
+> data T2 = T2V1 Bool | T2V2 T1 -- 5 values
 
 To determine the values that make up either `T1` or `T2`, we just "sum up" the
 values that can be created using all their respective value constructors. How
@@ -128,7 +132,7 @@ many values make up `T2`?
 
 Here's a product type:
 
-> data T3 = T3V Bool T1
+> data T3 = T3V Bool T1 -- 2 *3 = 6 values
 
 To determine the values that make up `T3`, we compute the "product" of the
 values for the constituent types of its single value constructor. How many
@@ -136,7 +140,7 @@ values make up `T3`?
 
 Here's a type that is both a sum and product type:
 
-> data T4 = T4V1 T1 T2 | T4V2 T2 T3
+> data T4 = T4V1 T1 T2 | T4V2 T2 T3 --3*5 + 5*6 = 45
 
 How many values make up `T4`?
 
@@ -155,7 +159,7 @@ generate "getter" functions:
 We can still create values with fields specified positionally:
 
 > s1 = Student "John" "Doe" 1234 ['A', 'B']
-
+-- firstName s1 returns "John"
 Or we can specify fields by name (order doesn't matter):
 
 > s2 = Student { lastName = "Doe", 
@@ -185,8 +189,8 @@ Here are some `RussianDoll`s:
 Write a function to return the message in the innermost non-empty doll:
 
 > innerMostMessage :: RussianDoll -> String
-> innerMostMessage EmptyDoll = ""
-> innerMostMessage (RussianDoll m EmptyDoll) = m
+> innerMostMessage EmptyDoll = error "empty doll!"
+> innerMostMessage (RussianDoll m EmptyDoll) = m --returns message of RussianDoll
 > innerMostMessage (RussianDoll _ d) = innerMostMessage d
 
 Write a function to reverse all messages in a doll:
@@ -203,7 +207,7 @@ Polymorphic Types
 A polymorphic type is a type defined using one or more type variables.
 
 E.g., here is a box type parameterized by a single type variable:
-
+-- takes an a and returns a Ubox of type a
 > data UniversalBox a = UBox a deriving Show
 
 The type name, `UniversalBox`, is now a *type constructor*. We must provide it
