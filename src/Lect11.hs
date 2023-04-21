@@ -3,45 +3,63 @@
 -- Michael Lee
 
 module Lect11 where
+import Prelude hiding (fail)
 import Data.Char
 
-data State s a = State { run :: s -> Maybe (a, s) }
+{-# ANN module "HLint: Use <$>" #-}
+
+data State s a = State { runState :: s -> Maybe (s, a) }
 
 
 instance Functor (State s) where
-  fmap f st = State $ \s -> case run st s of
-                              Nothing -> Nothing
-                              Just (x, s') -> Just (f x, s')
+  fmap :: (a -> b) -> State s a -> State s b
+  fmap f st = State $ \s -> 
+    case runState st s of Nothing -> Nothing
+                          Just (s', x) -> Just (s', f x)
 
 
 instance Applicative (State s) where
-  pure x = State $ \s -> Just (x, s)
-  stf <*> stx = State $ \s -> case run stf s of
-                                Nothing -> Nothing
-                                Just (f, s') -> run (f <$> stx) s'
+  pure :: a -> State s a
+  pure x = State $ \s -> Just (s, x)
+
+  (<*>) :: State s (a -> b) -> State s a -> State s b
+  stf <*> stx = State $ \s -> 
+    case runState stf s of Nothing -> Nothing
+                           Just (s', f) -> runState (f <$> stx) s'
 
 
 instance Monad (State s) where
-  st >>= f = State $ \s -> case run st s of
-                             Nothing -> Nothing
-                             Just (x, s') -> run (f x) s'
+  (>>=) :: State s a -> (a -> State s b) -> State s b
+  st >>= f = State $ \s -> 
+    case runState st s of Nothing -> Nothing
+                          Just (s', x) -> runState (f x) s'
 
+-- Problem: using the state monad, write a parser that attempts to parse and
+--          evaluate an infix arithmetic expression
+
+-- Example: "1 + 2 * 3" -> 7
+--          "1 + 2 * 3 + 4" -> 11
+--          "(1 + 2) * (3 + 4))" -> 21
 
 type Parser a = State String a
 
 
 item :: Parser Char
-item = State $ \input -> case input of "" -> Nothing
-                                       (x:xs) -> Just (x, xs)
+item = State $ \s -> case s of "" -> Nothing
+                               (c:cs) -> Just (cs, c)
 
 
 sat :: (Char -> Bool) -> Parser Char
-sat p = do x <- item
-           if p x then return x else State (\_ -> Nothing)
+sat p = do c <- item
+           if p c then return c else fail
+
+
+fail :: Parser a
+fail = State $ \s -> Nothing
 
 
 char :: Char -> Parser Char
-char c = sat (==c)
+char c = sat (== c)
 
 
 string :: String -> Parser String
@@ -58,78 +76,53 @@ digit = sat isDigit
 digits :: Parser [Char]
 digits = do d <- digit
             ds <- digits
-            return $ d:ds
+            return (d:ds)
 
 
 pOr :: Parser a -> Parser a -> Parser a
-p `pOr` q = State $ \s -> case run p s of 
-                               Nothing -> run q s
-                               r -> r
+p `pOr` q = State $ \s -> case runState p s of Nothing -> runState q s
+                                               Just x -> Just x
+
+
+(<|>) = pOr
 
 
 digits' :: Parser [Char]
 digits' = do d <- digit 
-             ds <- digits' `pOr` return []
+             ds <- digits' <|> return []
              return $ d:ds
 
 
-onePlus :: Parser a -> Parser [a]
-onePlus p = do x <- p 
-               xs <- onePlus p `pOr` return []
-               return $ x:xs
+oneOrMore :: Parser a -> Parser [a]
+oneOrMore p = do x <- p 
+                 xs <- oneOrMore p <|> return []
+                 return $ x:xs
 
 
-digits'' = onePlus digit
+digits'' = oneOrMore digit
 
 
-zeroPlus :: Parser a -> Parser [a]
-zeroPlus p = onePlus p `pOr` return []
+zeroOrMore :: Parser a -> Parser [a]
+zeroOrMore p = oneOrMore p <|> return []
 
 
-onePlus' :: Parser a -> Parser [a]
-onePlus' p = pure (:) <*> p <*> zeroPlus p
+oneOrMore' :: Parser a -> Parser [a]
+oneOrMore' p = do x <- p
+                  xs <- zeroOrMore p
+                  return (x:xs)
 
 
-digits''' = onePlus' digit
+digits''' = oneOrMore' digit
 
-
-class Applicative f => Alternative f where
-  empty :: f a
-  (<|>) :: f a -> f a -> f a
-
-  many :: f a -> f [a]
-  some :: f a -> f [a]
-
-  many x = some x <|> pure []
-  some x = pure (:) <*> x <*> many x
-
-
-instance Alternative (State s) where
-  empty = State $ \s -> Nothing
-  p <|> q = State $ \s -> case run p s of
-                            Nothing -> run q s
-                            r -> r
-
-sat' p = do x <- item
-            if p x then return x else empty
-
-digits'''' :: Parser [Char]
-digits'''' = some digit
-
-
-nat :: Parser Int
-nat = read <$> digits''''
 
 
 int :: Parser Int
-int = (do char '-'
-          n <- nat
-          return (-n))
-     <|> nat
+int = do cs <- oneOrMore digit
+         return (read cs)
 
 
 space :: Parser ()
-space = do many (sat isSpace)
+space = do zeroOrMore (sat isSpace)
            return ()
 
 
@@ -144,14 +137,43 @@ symbol :: String -> Parser String
 symbol s = token (string s)
 
 
-integer :: Parser Int
-integer = token int
+-- Grammar (in Backus-Naur Form) for infix arithmetic expressions:
+--   expr   ::= term + expression | term
+--   term   ::= factor * term | factor
+--   factor ::= ( expr ) | integer
+
+data Expr = Lit Int
+          | Add Expr Expr
+          | Mul Expr Expr
+          deriving (Show)
 
 
-ints :: Parser [Int]
-ints = do symbol "["
-          n <- integer
-          ns <- many (do symbol ","
-                         integer)
-          symbol "]"
-          return (n:ns)
+expr :: Parser Expr
+expr = do t1 <- term
+          symbol "+"
+          t2 <- expr
+          return (Add t1 t2)
+       <|> term
+
+
+term :: Parser Expr
+term = do f1 <- factor
+          symbol "*"
+          f2 <- term
+          return (Mul f1 f2)
+       <|> factor
+
+
+factor :: Parser Expr
+factor = do symbol "("
+            e <- expr
+            symbol ")"
+            return e
+         <|> do i <- int
+                return (Lit i)                    
+
+
+eval :: Expr -> Int
+eval (Lit i) = i
+eval (Add e1 e2) = eval e1 + eval e2
+eval (Mul e1 e2) = eval e1 * eval e2
